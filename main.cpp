@@ -13,46 +13,46 @@ queue<int> fifo;
 priority_queue<int> lru;
 int tiempo;
 
-void accesar(string linea)
+void accesar(string linea)//intenta accesar al proceso en memoria y si no lo encuentra activa politica de swaping
 {
 
 }
 
-void comenzar(string linea)
+void comentario(string linea)//imprime un comentario
 {
 
 }
 
-void exit(string linea)
+void exit(string linea)//sali del programa
 {
     cout << linea << endl;
     cout << "Hasta luego!" << endl;
 }
 
-void fin(string linea)
+void fin(string linea)//termina el paquete de pedido
 {
 
 }
 
-void liberar(string linea)
+void liberar(string linea)//libera el espacio de memoria
 {
 
 }
 
-void cargarProceso(string linea)
+void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta llena activa la politica de reemplazo.
 {
 
 }
 
-vector<string> split(const string& s, const char& c)
+vector<string> split(const string& s)//lee un
 {
 	string buff{""};
 	vector<string> v;
 	
 	for(auto n:s)
 	{
-		if(n != c) buff+=n; else
-			if(n == c && buff != "") { v.push_back(buff); buff = ""; }
+		if(n != " ") buff+=n; else
+			if(n == " " && buff != "") { v.push_back(buff); buff = ""; }
 	}
 	if(buff != "") v.push_back(buff);
 	
