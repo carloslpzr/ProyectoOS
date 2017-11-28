@@ -3,12 +3,14 @@
 #include <vector>
 #include <queue>
 
+
 using namespace std;
 
 vector<int> memPrincipal(2048);
 vector<int> swapping(4096);
 vector<int> marcos(128);
 queue<int> fifo;
+priority_queue<int> lru;
 
 void accesar(string linea)
 {
