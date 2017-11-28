@@ -11,6 +11,7 @@ vector<int> swapping(4096);
 vector<int> marcos(128);
 queue<int> fifo;
 priority_queue<int> lru;
+int tiempo;
 
 void accesar(string linea)
 {
@@ -46,6 +47,7 @@ void cargarProceso(string linea)
 
 int main()
 {
+    tiempo = 0;
     char comando;
     string archivo, linea;
     cin >> archivo;
