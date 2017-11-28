@@ -1,5 +1,7 @@
 # depslib dependency file v1.0
-1511835241 source:c:\users\carlos\desktop\c++\proyectofinalos\main.cpp
+1511841078 source:c:\users\carlos\desktop\c++\proyectofinalos\main.cpp
 	<iostream>
 	<fstream>
+	<vector>
+	<queue>
 

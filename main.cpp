@@ -13,6 +13,21 @@ queue<int> fifo;
 priority_queue<int> lru;
 int tiempo;
 
+vector<string> split(const string& s)//lee un
+{
+	string buff{""};
+	vector<string> v;
+
+	for(auto n:s)
+	{
+		if(n != ' ') buff+=n; else
+			if(n == ' ' && buff != "") { v.push_back(buff); buff = ""; }
+	}
+	if(buff != "") v.push_back(buff);
+
+	return v;
+}
+
 void accesar(string linea)//intenta accesar al proceso en memoria y si no lo encuentra activa politica de swaping
 {
 
@@ -44,20 +59,6 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
 
 }
 
-vector<string> split(const string& s)//lee un
-{
-	string buff{""};
-	vector<string> v;
-	
-	for(auto n:s)
-	{
-		if(n != " ") buff+=n; else
-			if(n == " " && buff != "") { v.push_back(buff); buff = ""; }
-	}
-	if(buff != "") v.push_back(buff);
-	
-	return v;
-}
 
 
 int main()
@@ -79,7 +80,7 @@ int main()
                 accesar(linea);
                 break;
             case 'C':
-                comenzar(linea);
+                comentario(linea);
                 break;
             case 'E':
                 exit(linea);
