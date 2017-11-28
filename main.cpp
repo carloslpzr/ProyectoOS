@@ -1,11 +1,12 @@
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 using namespace std;
 
-int memPrincipal[2048];
-int swapping[4096];
-int marcos[128];
+vector<int> memPrincipal(2048);
+vector<int> swapping(4096);
+vector<int> marcos(128);
 
 void accesar(string linea)
 {
