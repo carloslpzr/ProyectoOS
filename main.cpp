@@ -2,7 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <queue>
-
+#include <string>
 
 using namespace std;
 
@@ -12,6 +12,7 @@ vector<int> marcos(128);
 queue<int> fifo;
 priority_queue<int> lru;
 int tiempo;
+
 
 vector<string> split(const string& s)//lee un
 {
@@ -56,6 +57,33 @@ void liberar(string linea)//libera el espacio de memoria
 
 void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta llena activa la politica de reemplazo.
 {
+    cout << linea << endl;
+    vector<string> instruccion = split(linea);
+    int nbits, proceso;
+
+
+    if(instruccion.size() != 3)
+    {
+        cout << "El numero de argumentos debe de ser 3." << endl;
+        return;
+    }
+
+    try
+    {
+        nbits = stoi(instruccion[1]);
+        proceso = stoi(instruccion[2]);
+    }
+    catch(...)
+    {
+        cout << "Los argumentos 2 y 3 deben de ser un numero entero" << endl;
+        return;
+    }
+
+    if(nbits > 2048 || nbits < 1)
+    {
+        cout << "los numeros de bits que puede ocupar un proceso deben de ser minimo de 1 y maximo 2048" << endl;
+        return;
+    }
 
 }
 
