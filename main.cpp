@@ -3,6 +3,7 @@
 #include <vector>
 #include <queue>
 #include <string>
+#include <set>
 
 using namespace std;
 
@@ -11,6 +12,7 @@ vector<int> swapping(4096);
 vector<int> marcos(128);
 queue<int> fifo;
 priority_queue<int> lru;
+set<int> listaProcesos;
 int tiempo;
 
 
@@ -52,7 +54,37 @@ void fin(string linea)//termina el paquete de pedido
 
 void liberar(string linea)//libera el espacio de memoria
 {
+    cout << linea << endl;
+    vector<string> instruccion = split(linea);
+    int proceso;
 
+    if(instruccion.size() != 2)
+    {
+        cout << "El numero de argumentos debe de ser 2." << endl;
+        return;
+    }
+
+    try
+    {
+        proceso = stoi(instruccion[1]);
+    }
+    catch(...)
+    {
+        cout << "El argumento 2 debe de ser un numero entero" << endl;
+        return;
+    }
+
+    if(listaProcesos.find(proceso) != listaProcesos.end())
+    {
+        cout << "Proceso " << proceso << " no existe" << endl;
+        return;
+    }
+
+
+
+
+    listaProcesos.erase(proceso);
+    return;
 }
 
 void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta llena activa la politica de reemplazo.
@@ -84,6 +116,8 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
         cout << "los numeros de bits que puede ocupar un proceso deben de ser minimo de 1 y maximo 2048" << endl;
         return;
     }
+
+
 
 }
 
@@ -123,6 +157,7 @@ int main()
                 cargarProceso(linea);
                 break;
             default:
+                cout << "instruccion invalida" << endl;
                 break;
         }
 
