@@ -10,9 +10,9 @@
 using namespace std;
 
 struct Proceso{
-	int id, bytes;
-	double tiempoEntrada, lastUsed, tiempoSalida;
-	bool activo; //(si/no)?
+	int id(-1), bytes(0), pageDefaults(0);
+	double tiempoEntrada(0), lastUsed(0), tiempoSalida(0);
+	bool activo(false); //(si/no)?
 };
 
 
@@ -40,7 +40,7 @@ vector<string> split(const string& s)//lee un
 	return v;
 }
 
-void swapFifo(bool FifoLRU)//true para FIFO, false para LRU
+void swapOut(bool FifoLRU)//true para FIFO, false para LRU
 {
     //declaraciones
     int proceso(-1), total = 0;
@@ -50,15 +50,6 @@ void swapFifo(bool FifoLRU)//true para FIFO, false para LRU
     if(FifoLRU==true){
         proceso = fifo.front();
         fifo.pop_front();
-
-        for(int i = 0; i < marcos.size(); i++)
-        {
-            if(marcos[i] == proceso)
-            {
-                marcos[i] = -1;
-                tiempo += 1;
-            }
-        }
     }else{
         for(auto elemento: listaProcesos){
                 if(elemento.lastUsed<LRUtime){
@@ -68,7 +59,15 @@ void swapFifo(bool FifoLRU)//true para FIFO, false para LRU
             }
     }
 
-
+    //libera los marcos y actualiza el tiempo.
+    for(int i = 0; i < marcos.size(); i++)
+        {
+            if(marcos[i] == proceso)
+            {
+                marcos[i] = -1;
+                tiempo += 1;
+            }
+        }
 
     for(int i = 0; i < memPrincipal.size(); i++)
     {
@@ -98,6 +97,48 @@ void swapFifo(bool FifoLRU)//true para FIFO, false para LRU
 
 void accesar(string linea)//intenta accesar al proceso en memoria y si no lo encuentra activa politica de swaping
 {
+    cout << linea << endl;
+    vector<string> instruccion = split(linea);
+    if(instruccion.size() != 4){
+        cout << "El numero de argumentos debe de ser 4." << endl;
+        return;
+    }
+    bool shouldSwap = true;
+    //Buscar si el proceso se encunetra en memoria.
+    for(int m : marcos){
+        if(m==instruccion[2]){
+            shouldSwap = false;
+            break;
+        }
+    }
+
+    //Si el proceso no se encuentra en memoria,
+    //Se hace un page fault y se mete a la memoria con swapping.
+    if(shouldSwap){
+        //Marcar un page fault en la lista de procesos.
+        for(Proceso p : listaProcesos)
+            if(p.id == instruccion[2])
+                p.pageFaults++;
+        //Deberia de meter el proceso que se deasea
+        //accesar a memoria.
+    }
+
+    int pagCount = floor(instruccion[1]/16); //El numero de pagina de la direccion virtual del proceso
+    int pagAct = 0;     //Contador para el numero de paginas que se han revisado que pertenecesn al proceso.
+    int dir = -1;       //Direccion real del proceso.
+    for(int i=0; i<marcos.size(); i++){
+        if(marcos[i]==instruccion[2])pagAct++;
+        if(pagAct==pagCount){
+            int desplazamiento = 16*i;
+            dir = desplazamiento+(instruccion[i]%16);
+            break;
+        }
+    }
+    if(dir!=-1){
+        //La memoria se "modifico"
+        if(instruccion[3]==1)count << "Pagina " << pagCount << " del proceso " << instruccion[2] << " modificada." << endl;
+        count << "Direccion virtual: " << instruccion[1] << ". Direccion real: " << dir;
+    }
 
 }
 
@@ -131,7 +172,7 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
 
     try
     {
-        proceso = stoi(instruccion[1]);
+        proceso = stoi(instruccion[2]);
     }
     catch(...)
     {
@@ -230,9 +271,21 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
         cout << "los numeros de bits que puede ocupar un proceso deben de ser minimo de 1 y maximo 2048" << endl;
         return;
     }
+}
 
-
-
+void fin(string linea)//termina el paquete de pedido
+{
+    cout << linea << endl;
+    int trnTotal = 0;
+    for(Proceso p : listaProcesos){
+        trnTotal += p.tiempoSalida-p.tiempoEntrada;
+        cout << "Proceso: " << p.id << endl;
+        cout << "Turnaround: " << p.tiempoSalida-p.tiempoEntrada << endl;
+        cout << "Page faults: " << p.pageFaults << endl;
+        cout << "=====";
+    }
+    cout << "Turnaround promedio: " << trnTotal/listaProcesos.size() << endl;
+    cout << "Swaps: " << swaps << endl;
 }
 
 
