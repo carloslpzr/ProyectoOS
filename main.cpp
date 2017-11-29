@@ -70,8 +70,6 @@ void swapFifo()
         }
     }
 
-    deque<int>::iterator index = find(fifo.begin(), fifo.end(), proceso);
-    fifo.erase(index);
 }
 
 void accesar(string linea)//intenta accesar al proceso en memoria y si no lo encuentra activa politica de swaping
