@@ -75,7 +75,6 @@ void liberar(string linea)//libera el espacio de memoria
         return;
     }
     /*
-
     if(listaProcesos.find(proceso) != listaProcesos.end())
     {
         cout << "Proceso " << proceso << " no existe" << endl;
@@ -127,12 +126,29 @@ void liberar(string linea)//libera el espacio de memoria
     return;
 }
 
+
+void swapOut()
+{
+    int fifoFirst = fifo.front();
+    vector <int>::iterator index = find(marcos.begin(), marcos.end(), fifoFirst);
+
+    vector <int>::iterator indexSwap = find(swapping.begin(), swapping.end(), -1);
+    swapping[indexSwap] = marcos[index];
+
+    cout << "pagina " << index << "del proceso" << fifoFirst << " swappeada al marco " << indexSwap << " del area de swapping" << endl;
+    marcos[index] = -1;
+
+    //para checar si ya no hay marcos de pagina del primer proceso de la queue en memoria
+    vector <int>::iterator ultimo = find(marcos.begin(), marcos.end(), fifo.front());
+    if(ultimo == marcos.end())
+        fifo.erase(fifo.begin());
+}
+
 void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta llena activa la politica de reemplazo.
 {
     cout << linea << endl;
     vector<string> instruccion = split(linea);
     int nbits, proceso;
-
 
     if(instruccion.size() != 3)
     {
@@ -157,8 +173,50 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
         return;
     }
 
+    int iCountFreeSpace = 0;
+    nPaginas = ceil(nbits/16.0); //numero de paginas que se necesitan
+    for(int i = 0; i <= 127; i++)
+        if(marcos[i] == -1)
+            iCountFreeSpace++;
 
+    int iCountFiller = 0;
 
+    if(iCountFreeSpace < nPaginas) // si no hay espacio en memoria se debe swappear
+    {
+        for(int i = 0; i < nPaginas; i++)
+        {
+            swapOut();
+        }
+        tiempo += nPaginas;
+    }
+
+    //una vez se tiene el espacio en memoria, se carga el proceso dependiendo si esta en area de swapping o no
+    vector <int>::iterator enSwapping = find(swapping.begin(), swapping.end(), proceso);
+    if(enSwapping =! -1) //si el proceso ya estaba en area de swapping la carga de pagina es de 0.1
+    {
+        for(int i = 0; i <= 127; i++)
+        {
+            if(marcos[i] == -1 && iCountFiller < nPaginas)
+            {
+                marcos[i] = proceso;
+                iCountFiller++;
+                tiempo = tiempo + 0.1;
+            }
+        }
+    }
+    else //si el proceso no estaba en area de swapping previamente, la carga de pagina es de 1
+    {
+        for(int i = 0; i <= 127; i++)
+        {
+            if(marcos[i] == -1 && iCountFiller < nPaginas)
+            {
+                marcos[i] = proceso;
+                iCountFiller++;
+                tiempo++;
+            }
+        }
+    }
+    fifo.push_back(proceso); //agrega el proceso a la lista FIFO
 }
 
 
