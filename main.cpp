@@ -1,19 +1,20 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <queue>
+#include <deque>
 #include <string>
 #include <set>
+#include <algorithm>
+#include <math.h>
 
 using namespace std;
 
-vector<int> memPrincipal(2048);
-vector<int> swapping(4096);
-vector<int> marcos(128);
-queue<int> fifo;
-priority_queue<int> lru;
+vector<int> memPrincipal(2048, -1);
+vector<int> swapping(4096, -1);
+vector<int> marcos(128, -1);
+deque<int> fifo;
 set<int> listaProcesos;
-int tiempo;
+double tiempo;
 
 
 vector<string> split(const string& s)//lee un
@@ -73,17 +74,56 @@ void liberar(string linea)//libera el espacio de memoria
         cout << "El argumento 2 debe de ser un numero entero" << endl;
         return;
     }
+    /*
 
     if(listaProcesos.find(proceso) != listaProcesos.end())
     {
         cout << "Proceso " << proceso << " no existe" << endl;
         return;
     }
+    */
 
+    try
+    {
+        double cont = 0;
+        for(int i = 0; i < swapping.size(); i++)
+        {
+            if(swapping[i] == proceso)
+            {
+                swapping[i] = -1;
+                cont += 0.1 ;
+            }
+        }
 
+        tiempo += cont/16.0;
+        cont = 0;
 
+        for(int i = 0; i < marcos.size(); i++)
+        {
+            if(marcos[i] == proceso)
+            {
+                marcos[i] = -1;
+                cont += 0.1;
+            }
+        }
+        tiempo += cont;
 
-    listaProcesos.erase(proceso);
+        for(int i = 0; i < memPrincipal.size(); i++)
+        {
+            if(memPrincipal[i] == proceso) memPrincipal[i] = -1;
+        }
+
+        deque<int>::iterator index = find(fifo.begin(), fifo.end(), proceso);
+        fifo.erase(index);
+
+    }
+    catch(...)
+    {
+        cout << "El proceso " << proceso << " no existe." << endl;
+        return;
+    }
+
+    //listaProcesos.erase(proceso);
     return;
 }
 
@@ -125,6 +165,7 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
 
 int main()
 {
+
     tiempo = 0;
     char comando;
     string archivo, linea;
