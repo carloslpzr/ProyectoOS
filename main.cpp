@@ -32,6 +32,48 @@ vector<string> split(const string& s)//lee un
 	return v;
 }
 
+void swapFifo()
+{
+    int proceso = fifo.front(), total = 0;
+    fifo.pop_front();
+
+    for(int i = 0; i < marcos.size; i++)
+    {
+        if(marcos[i] == proceso)
+        {
+            marcos[i] = -1;
+            tiempo += 1;
+        }
+    }
+
+    for(int i = 0; i < memPrincipal.size(); i++)
+    {
+        if(memPrincipal[i] == proceso)
+        {
+            memPrincipal[i] = -1;
+            total++;
+        }
+    }
+
+    for(int i = 0; i < swapping.size(); i += 16)
+    {
+        if(swapping[i] == -1)
+        {
+            for(int j = i; j < i+16; j++)
+            {
+                if(total > 0)
+                {
+                    swapping[j] = proceso;
+                    total--;
+                }
+            }
+        }
+    }
+
+    deque<int>::iterator index = find(fifo.begin(), fifo.end(), proceso);
+    fifo.erase(index);
+}
+
 void accesar(string linea)//intenta accesar al proceso en memoria y si no lo encuentra activa politica de swaping
 {
 
@@ -53,7 +95,7 @@ void fin(string linea)//termina el paquete de pedido
 
 }
 
-void liberar(string linea)//libera el espacio de memoria
+void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
 {
     cout << linea << endl;
     vector<string> instruccion = split(linea);
@@ -83,8 +125,12 @@ void liberar(string linea)//libera el espacio de memoria
     }
     */
 
+
+
+
     try
     {
+        //cont: variable para sumar la cantidad de tiempo que se le debe de agregar al tiempo global
         double cont = 0;
         for(int i = 0; i < swapping.size(); i++)
         {
@@ -95,6 +141,7 @@ void liberar(string linea)//libera el espacio de memoria
             }
         }
 
+        //se divide entre 16 ya que el tiempo de liberacion es de 0.1 por pagina, osea 16 bytes.
         tiempo += cont/16.0;
         cont = 0;
 
@@ -113,6 +160,8 @@ void liberar(string linea)//libera el espacio de memoria
             if(memPrincipal[i] == proceso) memPrincipal[i] = -1;
         }
 
+
+        //remueve el proceso de la lista de procesos FIFO para que no haya error
         deque<int>::iterator index = find(fifo.begin(), fifo.end(), proceso);
         fifo.erase(index);
 
@@ -126,6 +175,9 @@ void liberar(string linea)//libera el espacio de memoria
     //listaProcesos.erase(proceso);
     return;
 }
+
+
+
 
 void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta llena activa la politica de reemplazo.
 {
