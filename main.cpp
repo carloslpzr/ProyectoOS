@@ -9,12 +9,19 @@
 
 using namespace std;
 
+struct Proceso{
+	int id, bytes, tiempoEntrada, lastUsed;
+	bool activo; //(si/no)?
+};
+
+
 vector<int> memPrincipal(2048, -1);
 vector<int> swapping(4096, -1);
 vector<int> marcos(128, -1);
 deque<int> fifo;
-set<int> listaProcesos;
+set<Proceso> listaProcesos;
 double tiempo;
+
 
 
 vector<string> split(const string& s)//lee un
@@ -32,19 +39,34 @@ vector<string> split(const string& s)//lee un
 	return v;
 }
 
-void swapFifo()
+void swapFifo(bool FifoLRU)//true para FIFO, false para LRU
 {
-    int proceso = fifo.front(), total = 0;
-    fifo.pop_front();
+    //seleccion del proceso a intercambiar
+    if(FifoLRU==true){
+        int proceso = fifo.front(), total = 0;
+        fifo.pop_front();
 
-    for(int i = 0; i < marcos.size; i++)
-    {
-        if(marcos[i] == proceso)
+        for(int i = 0; i < marcos.size(); i++)
         {
-            marcos[i] = -1;
-            tiempo += 1;
+            if(marcos[i] == proceso)
+            {
+                marcos[i] = -1;
+                tiempo += 1;
+            }
         }
+    }else{
+         //declaraciones
+        int proceso_a_sacar(-1), LRUtime(9999);
+        //obtiene el siguiente proceso a sacar
+        for(auto elemento: listaProcesos){
+                if(elemento.lastUsed<LRUtime){
+                    proceso_a_sacar = elemento.id;
+                    LRUtime = elemento.lastUsed;
+                }
+            }
     }
+
+
 
     for(int i = 0; i < memPrincipal.size(); i++)
     {
