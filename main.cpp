@@ -22,7 +22,7 @@ vector<int> marcos(128, -1);
 deque<int> fifo;
 set<Proceso> listaProcesos;
 double tiempo;
-
+int swaps;
 
 
 vector<string> split(const string& s)//lee un
