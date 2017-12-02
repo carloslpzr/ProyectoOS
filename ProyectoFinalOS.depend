@@ -1,8 +1,11 @@
 # depslib dependency file v1.0
-1511843135 source:c:\users\carlos\desktop\c++\proyectofinalos\main.cpp
+1512257224 source:c:\users\carlos\desktop\c++\proyectofinalos\main.cpp
 	<iostream>
 	<fstream>
 	<vector>
-	<queue>
+	<deque>
 	<string>
+	<set>
+	<algorithm>
+	<math.h>
 

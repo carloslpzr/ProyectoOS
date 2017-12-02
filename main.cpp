@@ -10,11 +10,15 @@
 using namespace std;
 
 struct Proceso{
-	int id(-1), bytes(0), pageDefaults(0);
+	int id = -1, bytes = 0, pageFaults = 0;
 	vector<int> residencia, marcoPagina;
-	double tiempoEntrada(0), lastUsed(0), tiempoSalida(0);
-	bool activo(false); //(si/no)?
+	double tiempoEntrada = 0, lastUsed = 0, tiempoSalida = 0;
 };
+
+inline bool operator<(const Proceso& p1, const Proceso& p2)
+{
+  return p1.id < p2.id;
+}
 
 
 vector<int> memPrincipal(2048, -1);
@@ -140,7 +144,6 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
         if(instruccion[3]==1)count << "Pagina " << pagCount << " del proceso " << instruccion[2] << " modificada." << endl;
         count << "Direccion virtual: " << instruccion[1] << ". Direccion real: " << dir;
     }
-
 }
 
 void comentario(string linea)//imprime un comentario
@@ -152,11 +155,6 @@ void exit(string linea)//sali del programa
 {
     cout << linea << endl;
     cout << "Hasta luego!" << endl;
-}
-
-void fin(string linea)//termina el paquete de pedido
-{
-
 }
 
 void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
@@ -173,13 +171,15 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
 
     try
     {
-        proceso = stoi(instruccion[2]);
+        proceso = stoi(instruccion[1]);
     }
     catch(...)
     {
         cout << "El argumento 2 debe de ser un numero entero" << endl;
         return;
     }
+
+    cout << "Liberar los marcos de página ocupados por el proceso " << proceso << endl;
 
     try
     {
@@ -198,12 +198,15 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
         tiempo += cont/16.0;
         cont = 0;
 
+        set<int> marcosLiberados;
+
         for(int i = 0; i < marcos.size(); i++)
         {
             if(marcos[i] == proceso)
             {
                 marcos[i] = -1;
                 cont += 0.1;
+                marcosLiberados.insert(i);
             }
         }
         tiempo += cont;
@@ -214,9 +217,25 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
         }
 
 
+        for(auto p:listaProcesos)
+        {
+            if(p.id == proceso)
+            {
+                p.tiempoSalida = tiempo;
+                p.residencia.assign(p.residencia.size(), -1);
+            }
+        }
+
         //remueve el proceso de la lista de procesos FIFO para que no haya error
         deque<int>::iterator index = find(fifo.begin(), fifo.end(), proceso);
         fifo.erase(index);
+
+        cout << "Se liberan los marcos de página de memoria real: [";
+        for(auto m: marcosLiberados)
+        {
+            cout << m << ",";
+        }
+        cout << "]" << endl;
 
     }
     catch(...)
@@ -225,16 +244,79 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
         return;
     }
 
-    //listaProcesos.erase(proceso);
     return;
 }
 
 void swap2()
 {
     int proceso = fifo.front();
-    vector <int>::iterator index = find(marcos.begin(), marcos.end(), fifoFirst);
+    int indiceCambiar;
+    bool cambio = false;
 
-    if()
+    for(auto p:listaProcesos)
+    {
+        if(p.id == proceso)
+        {
+            for(int i = 0; i < p.residencia.size(); i++)
+            {
+                if(p.residencia[i] == 1 && !cambio)
+                {
+                    cambio = true;
+                    p.residencia[i] = 0;
+                    indiceCambiar = p.marcoPagina[i];
+                }
+            }
+        }
+    }
+
+    if(!cambio)
+    {
+        fifo.pop_front();
+        proceso = fifo.front();
+        for(auto p:listaProcesos)
+        {
+            if(p.id == proceso)
+            {
+                for(int i = 0; i < p.residencia.size(); i++)
+                {
+                    if(p.residencia[i] == 1 && !cambio)
+                    {
+                        cambio = true;
+                        p.residencia[i] = 0;
+                        indiceCambiar = p.marcoPagina[i];
+                    }
+                }
+            }
+        }
+    }
+
+    marcos[indiceCambiar] = -1;
+
+    int dirReal = indiceCambiar * 16;
+    int total = 0;
+
+    for(int i = dirReal; i < dirReal + 16; i++)
+    {
+        if(memPrincipal[i] != -1)
+        {
+            memPrincipal[i] = -1;
+            total++;
+        }
+    }
+
+    for(int i = 0; i < swapping.size(); i += 16)
+    {
+        if(swapping[i] == -1)
+        {
+            for(int j = i; j < i + total; j++)
+            {
+                swapping[j] = proceso;
+            }
+        }
+    }
+
+    tiempo++;
+
 }
 
 
@@ -268,17 +350,69 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
         return;
     }
 
+    cout << "Asignar " << nbits << " bytes al proceso " << proceso << endl;
+
     int iCountFreeSpace = 0;
-    nPaginas = ceil(nbits/16.0); //numero de paginas que se necesitan
+    int nPaginas = ceil(nbits/16.0); //numero de paginas que se necesitan
     for(int i = 0; i <= 127; i++)
         if(marcos[i] == -1)
             iCountFreeSpace++;
 
     while(iCountFreeSpace < nPaginas)
     {
-        swapOut();
+        swap2();
         iCountFreeSpace++;
     }
+
+    Proceso *p = new Proceso;
+    p->id = proceso;
+    p->bytes = nbits;
+    p->tiempoEntrada = tiempo;
+    p->lastUsed = tiempo;
+
+    set<int> marcosCambiados;
+
+    for(int i = 0; i < marcos.size(); i++)
+    {
+        if(marcos[i] == -1 && nPaginas > 0)
+        {
+            marcos[i] = proceso;
+            tiempo++;
+            nPaginas--;
+            p->residencia.push_back(1);
+            p->marcoPagina.push_back(i);
+            marcosCambiados.insert(i);
+        }
+    }
+
+    for(int i = 0; i < memPrincipal.size(); i += 16)
+    {
+        if(memPrincipal[i] == -1);
+        {
+            for(int j = i; j < i+16; j++)
+            {
+                if(nbits > 0)
+                {
+                    memPrincipal[j] == proceso;
+                    nbits--;
+                }
+            }
+        }
+    }
+
+    cout << "Se asignaron los marcos de pagina ";
+
+    for(auto m:marcosCambiados)
+    {
+        cout << m << ", ";
+    }
+
+    cout << "al proceso " << proceso << endl;
+
+    fifo.push_back(p->id);
+
+
+    listaProcesos.insert(*p);
 }
 
 void fin(string linea)//termina el paquete de pedido
