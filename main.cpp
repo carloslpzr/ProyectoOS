@@ -144,7 +144,7 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
 
 void comentario(string linea)//imprime un comentario
 {
-
+    cout << linea << endl;
 }
 
 void exit(string linea)//sali del programa
