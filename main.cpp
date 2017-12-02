@@ -108,42 +108,100 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
         cout << "El numero de argumentos debe de ser 4." << endl;
         return;
     }
-    bool shouldSwap = true;
-    //Buscar si el proceso se encunetra en memoria.
-    for(int m : marcos){
-        if(m==instruccion[2]){
-            shouldSwap = false;
-            break;
+    //declaracion de variables
+    bool proceso_existe(false), should_swapin(false); //el proceso esta em memoiria o swapping? deberia hacerse swapping?
+    int pagina_especifica = stoi(instruccion[1])/16;
+    int id_del_proceso_a_accesar = stoi(instruccion[2]);
+    Proceso proceso_a_accesar;
+
+    /*Pregunta si la pagina especifica se encuentra en memoria o en swapping
+    * Si la pagina esta en memoria, nomas accesa
+    * si la pagina no esta en memoria pero si en el swapping entonces manda a llamar swapin
+    */
+    for(auto proceso : listaProcesos){
+        if(proceso.id==id_del_proceso_a_accesar){//buscar la referencia
+            proceso_a_accesar = proceso;//obtener la referencia
+            if(proceso_a_accesar.residencia[pagina_especifica]==1){//proceso existe y esta en memoria
+                proceso_existe = true;
+                should_swapin = false;
+            }else if(proceso_a_accesar.residencia[pagina_especifica]==0){//proceso existe y no esta en memoria
+                proceso_existe = true;
+                should_swapin = true;
+            }else if(proceso_a_accesar.residencia[pagina_especifica]==-1){//proceso no existe
+                proceso_existe = false;
+                should_swapin = false;
+            }
         }
     }
 
-    //Si el proceso no se encuentra en memoria,
-    //Se hace un page fault y se mete a la memoria con swapping.
-    if(shouldSwap){
-        //Marcar un page fault en la lista de procesos.
-        for(Proceso p : listaProcesos)
-            if(p.id == instruccion[2])
-                p.pageFaults++;
-        //Deberia de meter el proceso que se deasea
-        //accesar a memoria.
+    bool hay_espacio(false); //(si/no) hay espacio en los marcos de pagina?
+    bool meter_a_fifo(false); //(si/no) deberia meterse a queue de fifo el proceso?
+    if(proceso_existe==true){
+        if(should_swapin==true){
+                //checar si hay espacio en los marcos de pagina
+                for(int n = 0; n<128; n++){
+                    if(marcos[n] == -1){//marco disponible
+                        hay_espacio = true;
+                        //meter la pagina de nuestro proceso en ese marco de pagina
+                        marcos[n] = proceso_a_accesar.id;
+                        //actualizar la tabla de paginacion del proceso a accesar
+                            //la pagin se encuentra en memoria
+                        proceso_a_accesar.residencia[pagina_especifica] = 1;
+                            //la pagina se encuentra en el marco de pagina n
+                        proceso_a_accesar.marcoPagina[pagina_especifica] = n;
+                            //last used = tiempo
+                        proceso_a_accesar.lastUsed = tiempo;
+                            //sumarle page faults
+                        proceso_a_accesar.pageFaults++;
+
+                    }
+                }
+                //si no hay espacio sacar una pagina de memoria y meter la nuestra en el espacio disponible
+                if(hay_espacio == false){
+                    //swapout una pagina de memoria (falta la funcion)
+                    //verificar si el 'proceso a accesar' deberia meterse a fifo nuevamente
+                    for(int n = 0; n<128; n++){
+                        if(marcos[n]==proceso_a_accesar.id){//si encontro una pagina previa
+                            meter_a_fifo=false;//no deberia meterse a fifo
+                        }
+                    }
+                    //mete la pagina a memoria
+                    for(int n = 0; n<128; n++){
+                        if(marcos[n] == -1){//marco disponible
+                            //meter la pagina del 'proceso a accesar' en ese marco de pagina
+                            marcos[n] = proceso_a_accesar.id;
+                            //actualizar la tabla de paginacion del 'proceso a accesar'
+                                //la pagin se encuentra en memoria = true
+                            proceso_a_accesar.residencia[pagina_especifica] = 1;
+                                //la pagina se encuentra en el marco de pagina n
+                            proceso_a_accesar.marcoPagina[pagina_especifica] = n;
+                                //last used = tiempo
+                            proceso_a_accesar.lastUsed = tiempo;
+                                //sumarle page faults
+                            proceso_a_accesar.pageFaults++;
+
+                        }
+                    }
+                    //mete a fifo
+                    if(meter_a_fifo==true){
+                        fifo.push_back(proceso_a_accesar.id);
+                    }
+                }
+
+
+        }else{
+            //accesar
+            if(stoi(instruccion[3])==0){
+                cout<<"Direccion virtual: "<<instruccion[1]<<". Direccion real: "
+                <<(proceso_a_accesar.marcoPagina[pagina_especifica] * 16) + (stoi(instruccion[1])%16)<<endl;
+            }
+        }
+    }else{
+            //generar error
+            cout<<"Error: El proceso que se intenta accesar no ha sido cargado"<<endl;
     }
 
-    int pagCount = floor(instruccion[1]/16); //El numero de pagina de la direccion virtual del proceso
-    int pagAct = 0;     //Contador para el numero de paginas que se han revisado que pertenecesn al proceso.
-    int dir = -1;       //Direccion real del proceso.
-    for(int i=0; i<marcos.size(); i++){
-        if(marcos[i]==instruccion[2])pagAct++;
-        if(pagAct==pagCount){
-            int desplazamiento = 16*i;
-            dir = desplazamiento+(instruccion[i]%16);
-            break;
-        }
-    }
-    if(dir!=-1){
-        //La memoria se "modifico"
-        if(instruccion[3]==1)count << "Pagina " << pagCount << " del proceso " << instruccion[2] << " modificada." << endl;
-        count << "Direccion virtual: " << instruccion[1] << ". Direccion real: " << dir;
-    }
+
 }
 
 void comentario(string linea)//imprime un comentario
