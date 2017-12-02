@@ -11,6 +11,7 @@ using namespace std;
 
 struct Proceso{
 	int id(-1), bytes(0), pageDefaults(0);
+	vector<int> residencia, marcoPagina;
 	double tiempoEntrada(0), lastUsed(0), tiempoSalida(0);
 	bool activo(false); //(si/no)?
 };
@@ -179,17 +180,6 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
         cout << "El argumento 2 debe de ser un numero entero" << endl;
         return;
     }
-    /*
-
-    if(listaProcesos.find(proceso) != listaProcesos.end())
-    {
-        cout << "Proceso " << proceso << " no existe" << endl;
-        return;
-    }
-    */
-
-
-
 
     try
     {
@@ -239,7 +229,13 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
     return;
 }
 
+void swap2()
+{
+    int proceso = fifo.front();
+    vector <int>::iterator index = find(marcos.begin(), marcos.end(), fifoFirst);
 
+    if()
+}
 
 
 void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta llena activa la politica de reemplazo.
@@ -270,6 +266,18 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
     {
         cout << "los numeros de bits que puede ocupar un proceso deben de ser minimo de 1 y maximo 2048" << endl;
         return;
+    }
+
+    int iCountFreeSpace = 0;
+    nPaginas = ceil(nbits/16.0); //numero de paginas que se necesitan
+    for(int i = 0; i <= 127; i++)
+        if(marcos[i] == -1)
+            iCountFreeSpace++;
+
+    while(iCountFreeSpace < nPaginas)
+    {
+        swapOut();
+        iCountFreeSpace++;
     }
 }
 
