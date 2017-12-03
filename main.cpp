@@ -30,7 +30,7 @@ deque<int> fifo;
 set<Proceso*> listaProcesos;
 double tiempo;
 int swapOut = 0, swapIn = 0;
-bool usar_LRU = false;
+bool usar_LRU = true;
 
 
 vector<string> split(const string& s)//lee un
@@ -53,10 +53,11 @@ void swapout()
 {
     int proceso = fifo.front();
     if(usar_LRU){//selecciona el proceso usando LRU
-        int minimio(9999);
-        for(auto: p: listaProcesos){
-            if(p->lastUsed<minimo && p->lastUsed>=0){
+        int minimo = 9999;
+        for(auto p: listaProcesos){
+            if(p->lastUsed < minimo && p->lastUsed>=0){
                 proceso = p->id;
+                minimo = p->lastUsed;
             }
         }
     }
@@ -78,6 +79,10 @@ void swapout()
                     indiceCambiar = p->marcoPagina[i];
                 }
             }
+            if(!cambio)
+            {
+                p->lastUsed = -1;
+            }
         }
     }
 
@@ -85,12 +90,12 @@ void swapout()
     {
         fifo.pop_front();
         proceso = fifo.front();
-        proceso->lastUsed = -1;
         if(usar_LRU){//selecciona el proceso usando LRU
-            int minimio(9999);
-            for(auto: p: listaProcesos){
+            int minimo = 9999;
+            for(auto p: listaProcesos){
                 if(p->lastUsed<minimo && p->lastUsed>=0){
                     proceso = p->id;
+                    minimo = p->lastUsed;
                 }
             }
         }
