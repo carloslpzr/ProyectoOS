@@ -27,7 +27,7 @@ vector<int> memPrincipal(2048, -1);
 vector<int> swapping(4096, -1);
 vector<int> marcos(128, -1);
 deque<int> fifo;
-set<Proceso> listaProcesos;
+set<Proceso*> listaProcesos;
 double tiempo;
 int swaps;
 
@@ -47,58 +47,84 @@ vector<string> split(const string& s)//lee un
 	return v;
 }
 
-void swapOut(bool FifoLRU)//true para FIFO, false para LRU
-{
-    //declaraciones
-    int proceso(-1), total = 0;
-    double  LRUtime(9999);
 
-    //seleccion del proceso a intercambiar
-    if(FifoLRU==true){
-        proceso = fifo.front();
-        fifo.pop_front();
-    }else{
-        for(auto elemento: listaProcesos){
-                if(elemento.lastUsed<LRUtime){
-                    proceso = elemento.id;
-                    LRUtime = elemento.lastUsed;
+void swap2()
+{
+    int proceso = fifo.front();
+    int indiceCambiar, paginaCambiada;
+    bool cambio = false;
+
+
+    for(auto p:listaProcesos)
+    {
+        if(p->id == proceso)
+        {
+            for(int i = 0; i < p->residencia.size(); i++)
+            {
+                if(p->residencia[i] == 1 && !cambio)
+                {
+                    cambio = true;
+                    p->residencia[i] = 0;
+                    paginaCambiada = i;
+                    indiceCambiar = p->marcoPagina[i];
                 }
             }
+        }
     }
 
-    //libera los marcos y actualiza el tiempo.
-    for(int i = 0; i < marcos.size(); i++)
+    if(!cambio)
+    {
+        fifo.pop_front();
+        proceso = fifo.front();
+        for(auto p:listaProcesos)
         {
-            if(marcos[i] == proceso)
+            if(p->id == proceso)
             {
-                marcos[i] = -1;
-                tiempo += 1;
+                for(int i = 0; i < p->residencia.size(); i++)
+                {
+                    if(p->residencia[i] == 1 && !cambio)
+                    {
+                        cambio = true;
+                        p->residencia[i] = 0;
+                        paginaCambiada = i;
+                        indiceCambiar = p->marcoPagina[i];
+                    }
+                }
             }
         }
+    }
 
-    for(int i = 0; i < memPrincipal.size(); i++)
+    marcos[indiceCambiar] = -1;
+
+    int dirReal = indiceCambiar * 16;
+    int total = 0;
+
+    for(int i = dirReal; i < dirReal + 16; i++)
     {
-        if(memPrincipal[i] == proceso)
+        if(memPrincipal[i] != -1)
         {
             memPrincipal[i] = -1;
             total++;
         }
     }
 
+    int marcoSwapping;
     for(int i = 0; i < swapping.size(); i += 16)
     {
-        if(swapping[i] == -1)
+        if(swapping[i] == -1 && total > 0)
         {
-            for(int j = i; j < i+16; j++)
+            marcoSwapping = i/16;
+            while(total > 0)
             {
-                if(total > 0)
-                {
-                    swapping[j] = proceso;
-                    total--;
-                }
+                int j = i;
+                swapping[j++] = proceso;
+                total--;
             }
         }
     }
+
+    cout << "pagina " << paginaCambiada << " del proceso " << proceso << " swappeada al marco " << marcoSwapping << " del area de swapping" << endl;
+    tiempo++;
 
 }
 
@@ -121,8 +147,8 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
     * si la pagina no esta en memoria pero si en el swapping entonces manda a llamar swapin
     */
     for(auto proceso : listaProcesos){
-        if(proceso.id==id_del_proceso_a_accesar){//buscar la referencia
-            proceso_a_accesar = proceso;//obtener la referencia
+        if(proceso->id==id_del_proceso_a_accesar){//buscar la referencia
+            proceso_a_accesar = *proceso;//obtener la referencia
             if(proceso_a_accesar.residencia[pagina_especifica]==1){//proceso existe y esta en memoria
                 proceso_existe = true;
                 should_swapin = false;
@@ -155,12 +181,14 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
                         proceso_a_accesar.lastUsed = tiempo;
                             //sumarle page faults
                         proceso_a_accesar.pageFaults++;
+                        break;
 
                     }
                 }
                 //si no hay espacio sacar una pagina de memoria y meter la nuestra en el espacio disponible
                 if(hay_espacio == false){
-                    //swapout una pagina de memoria (falta la funcion)
+                    //swapout una pagina de memoria
+                    swap2();
                     //verificar si el 'proceso a accesar' deberia meterse a fifo nuevamente
                     for(int n = 0; n<128; n++){
                         if(marcos[n]==proceso_a_accesar.id){//si encontro una pagina previa
@@ -188,6 +216,11 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
                     if(meter_a_fifo==true){
                         fifo.push_back(proceso_a_accesar.id);
                     }
+
+                    if(stoi(instruccion[3])==0){
+                        cout<<"Direccion virtual: "<<instruccion[1]<<". Direccion real: "
+                        <<(proceso_a_accesar.marcoPagina[pagina_especifica] * 16) + (stoi(instruccion[1])%16)<<endl;
+                    }
                 }
 
 
@@ -202,7 +235,6 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
             //generar error
             cout<<"Error: El proceso que se intenta accesar no ha sido cargado"<<endl;
     }
-
 
 }
 
@@ -279,10 +311,10 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
 
         for(auto p:listaProcesos)
         {
-            if(p.id == proceso)
+            if(p->id == proceso)
             {
-                p.tiempoSalida = tiempo;
-                p.residencia.assign(p.residencia.size(), -1);
+                p->tiempoSalida = tiempo;
+                p->residencia.assign(p->residencia.size(), -1);
             }
         }
 
@@ -307,85 +339,6 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
     return;
 }
 
-void swap2()
-{
-    int proceso = fifo.front();
-    int indiceCambiar, paginaCambiada;
-    bool cambio = false;
-
-
-    for(auto p:listaProcesos)
-    {
-        if(p.id == proceso)
-        {
-            for(int i = 0; i < p.residencia.size(); i++)
-            {
-                if(p.residencia[i] == 1 && !cambio)
-                {
-                    cambio = true;
-                    p.residencia[i] = 0;
-                    paginaCambiada = i;
-                    indiceCambiar = p.marcoPagina[i];
-                }
-            }
-        }
-    }
-
-    if(!cambio)
-    {
-        fifo.pop_front();
-        proceso = fifo.front();
-        for(auto p:listaProcesos)
-        {
-            if(p.id == proceso)
-            {
-                for(int i = 0; i < p.residencia.size(); i++)
-                {
-                    if(p.residencia[i] == 1 && !cambio)
-                    {
-                        cambio = true;
-                        p.residencia[i] = 0;
-                        paginaCambiada = i;
-                        indiceCambiar = p.marcoPagina[i];
-                    }
-                }
-            }
-        }
-    }
-
-    marcos[indiceCambiar] = -1;
-
-    int dirReal = indiceCambiar * 16;
-    int total = 0;
-
-    for(int i = dirReal; i < dirReal + 16; i++)
-    {
-        if(memPrincipal[i] != -1)
-        {
-            memPrincipal[i] = -1;
-            total++;
-        }
-    }
-
-    int marcoSwapping;
-    for(int i = 0; i < swapping.size(); i += 16)
-    {
-        if(swapping[i] == -1 && total > 0)
-        {
-            marcoSwapping = i/16;
-            while(total > 0)
-            {
-                int j = i;
-                swapping[j++] = proceso;
-                total--;
-            }
-        }
-    }
-
-    cout << "pagina " << paginaCambiada << " del proceso " << proceso << " swappeada al marco " << marcoSwapping << " del area de swapping" << endl;
-    tiempo++;
-
-}
 
 
 void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta llena activa la politica de reemplazo.
@@ -461,7 +414,7 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
             {
                 if(nbits > 0)
                 {
-                    memPrincipal[j] == proceso;
+                    memPrincipal[j] = proceso;
                     nbits--;
                 }
             }
@@ -480,18 +433,18 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
     fifo.push_back(p->id);
 
 
-    listaProcesos.insert(*p);
+    listaProcesos.insert(p);
 }
 
 void fin(string linea)//termina el paquete de pedido
 {
     cout << linea << endl;
     int trnTotal = 0;
-    for(Proceso p : listaProcesos){
-        trnTotal += p.tiempoSalida-p.tiempoEntrada;
-        cout << "Proceso: " << p.id << endl;
-        cout << "Turnaround: " << p.tiempoSalida-p.tiempoEntrada << endl;
-        cout << "Page faults: " << p.pageFaults << endl;
+    for(Proceso* p : listaProcesos){
+        trnTotal += p->tiempoSalida - p->tiempoEntrada;
+        cout << "Proceso: " << p->id << endl;
+        cout << "Turnaround: " << p->tiempoSalida-p->tiempoEntrada << endl;
+        cout << "Page faults: " << p->pageFaults << endl;
         cout << "=====";
     }
     cout << "Turnaround promedio: " << trnTotal/listaProcesos.size() << endl;
