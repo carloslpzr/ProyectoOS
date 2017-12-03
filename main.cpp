@@ -305,8 +305,10 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
         tiempo += cont/16.0;
         cont = 0;
 
+        //variable usada para guardar los numeros de paginas liberadas
         set<int> marcosLiberados;
 
+        //libera  marcos
         for(int i = 0; i < marcos.size(); i++)
         {
             if(marcos[i] == proceso)
@@ -318,12 +320,14 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
         }
         tiempo += cont;
 
+        //libera memoria principal
         for(int i = 0; i < memPrincipal.size(); i++)
         {
             if(memPrincipal[i] == proceso) memPrincipal[i] = -1;
         }
 
 
+        //actualiza el tiempo de salida del proceso y sus bits de residencia, -1 significa que ya salio de memoria.
         for(auto p:listaProcesos)
         {
             if(p->id == proceso)
@@ -336,6 +340,7 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
         //remueve el proceso de la lista de procesos FIFO para que no haya error
         deque<int>::iterator index = find(fifo.begin(), fifo.end(), proceso);
         fifo.erase(index);
+
 
         cout << "Se liberan los marcos de página de memoria real: [";
         for(auto m: marcosLiberados)
@@ -390,15 +395,19 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
 
     int iCountFreeSpace = 0;
     int nPaginas = ceil(nbits/16.0); //numero de paginas que se necesitan
+    //cuenta pagians libres
     for(int i = 0; i <= 127; i++)
         if(marcos[i] == -1)
             iCountFreeSpace++;
 
     while(iCountFreeSpace < nPaginas)
     {
+        //saca una pagina
         swapout();
         iCountFreeSpace++;
     }
+
+    //crea nuevo proceso
 
     Proceso *p = new Proceso;
     p->id = proceso;
@@ -408,6 +417,7 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
 
     set<int> marcosCambiados;
 
+    //carga a marcos y llena la info necesaria
     for(int i = 0; i < marcos.size(); i++)
     {
         if(marcos[i] == -1 && nPaginas > 0)
@@ -415,12 +425,14 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
             marcos[i] = proceso;
             tiempo++;
             nPaginas--;
-            p->residencia.push_back(1);
-            p->marcoPagina.push_back(i);
+            p->residencia.push_back(1); //cambia bit de residencia
+            p->marcoPagina.push_back(i); // guarda marco de pagina donde esta ubicado
             marcosCambiados.insert(i);
         }
     }
 
+
+    //carga a memoria principal el proceso
     for(int i = 0; i < memPrincipal.size(); i += 16)
     {
         if(memPrincipal[i] == -1);
@@ -445,9 +457,10 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
 
     cout << "al proceso " << proceso << endl;
 
+    //fifo
     fifo.push_back(p->id);
 
-
+    //guarda en la lista de procesos
     listaProcesos.insert(p);
 }
 
