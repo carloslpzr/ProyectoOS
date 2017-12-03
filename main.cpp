@@ -13,6 +13,8 @@ struct Proceso{
 	int id = -1, bytes = 0, pageFaults = 0;
 	vector<int> residencia, marcoPagina;
 	double tiempoEntrada = 0, lastUsed = 0, tiempoSalida = 0;
+
+
 };
 
 inline bool operator<(const Proceso& p1, const Proceso& p2)
@@ -308,8 +310,9 @@ void liberar(string linea, bool bSwap = false)//libera el espacio de memoria
 void swap2()
 {
     int proceso = fifo.front();
-    int indiceCambiar;
+    int indiceCambiar, paginaCambiada;
     bool cambio = false;
+
 
     for(auto p:listaProcesos)
     {
@@ -321,6 +324,7 @@ void swap2()
                 {
                     cambio = true;
                     p.residencia[i] = 0;
+                    paginaCambiada = i;
                     indiceCambiar = p.marcoPagina[i];
                 }
             }
@@ -341,6 +345,7 @@ void swap2()
                     {
                         cambio = true;
                         p.residencia[i] = 0;
+                        paginaCambiada = i;
                         indiceCambiar = p.marcoPagina[i];
                     }
                 }
@@ -362,17 +367,22 @@ void swap2()
         }
     }
 
+    int marcoSwapping;
     for(int i = 0; i < swapping.size(); i += 16)
     {
-        if(swapping[i] == -1)
+        if(swapping[i] == -1 && total > 0)
         {
-            for(int j = i; j < i + total; j++)
+            marcoSwapping = i/16;
+            while(total > 0)
             {
-                swapping[j] = proceso;
+                int j = i;
+                swapping[j++] = proceso;
+                total--;
             }
         }
     }
 
+    cout << "pagina " << paginaCambiada << " del proceso " << proceso << " swappeada al marco " << marcoSwapping << " del area de swapping" << endl;
     tiempo++;
 
 }
@@ -508,21 +518,27 @@ int main()
         {
             case 'A':
                 accesar(linea);
+                cout << endl;
                 break;
             case 'C':
                 comentario(linea);
+                cout << endl;
                 break;
             case 'E':
                 exit(linea);
+                cout << endl;
                 break;
             case 'F':
                 fin(linea);
+                cout << endl;
                 break;
             case 'L':
                 liberar(linea);
+                cout << endl;
                 break;
             case 'P':
                 cargarProceso(linea);
+                cout << endl;
                 break;
             default:
                 cout << "instruccion invalida" << endl;
