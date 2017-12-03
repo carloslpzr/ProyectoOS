@@ -29,7 +29,7 @@ vector<int> marcos(128, -1);
 deque<int> fifo;
 set<Proceso*> listaProcesos;
 double tiempo;
-int swaps;
+int swapOut = 0, swapIn = 0;
 
 
 vector<string> split(const string& s)//lee un
@@ -48,7 +48,7 @@ vector<string> split(const string& s)//lee un
 }
 
 
-void swap2()
+void swapout()
 {
     int proceso = fifo.front();
     int indiceCambiar, paginaCambiada;
@@ -125,6 +125,7 @@ void swap2()
 
     cout << "pagina " << paginaCambiada << " del proceso " << proceso << " swappeada al marco " << marcoSwapping << " del area de swapping" << endl;
     tiempo++;
+    swapOut++;
 
 }
 
@@ -140,7 +141,7 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
     bool proceso_existe(false), should_swapin(false); //el proceso esta em memoiria o swapping? deberia hacerse swapping?
     int pagina_especifica = stoi(instruccion[1])/16;
     int id_del_proceso_a_accesar = stoi(instruccion[2]);
-    Proceso proceso_a_accesar;
+    Proceso *proceso_a_accesar;
 
     /*Pregunta si la pagina especifica se encuentra en memoria o en swapping
     * Si la pagina esta en memoria, nomas accesa
@@ -148,14 +149,14 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
     */
     for(auto proceso : listaProcesos){
         if(proceso->id==id_del_proceso_a_accesar){//buscar la referencia
-            proceso_a_accesar = *proceso;//obtener la referencia
-            if(proceso_a_accesar.residencia[pagina_especifica]==1){//proceso existe y esta en memoria
+            proceso_a_accesar = proceso;//obtener la referencia
+            if(proceso_a_accesar->residencia[pagina_especifica]==1){//proceso existe y esta en memoria
                 proceso_existe = true;
                 should_swapin = false;
-            }else if(proceso_a_accesar.residencia[pagina_especifica]==0){//proceso existe y no esta en memoria
+            }else if(proceso_a_accesar->residencia[pagina_especifica]==0){//proceso existe y no esta en memoria
                 proceso_existe = true;
                 should_swapin = true;
-            }else if(proceso_a_accesar.residencia[pagina_especifica]==-1){//proceso no existe
+            }else if(proceso_a_accesar->residencia[pagina_especifica]==-1){//proceso no existe
                 proceso_existe = false;
                 should_swapin = false;
             }
@@ -171,16 +172,16 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
                     if(marcos[n] == -1){//marco disponible
                         hay_espacio = true;
                         //meter la pagina de nuestro proceso en ese marco de pagina
-                        marcos[n] = proceso_a_accesar.id;
+                        marcos[n] = proceso_a_accesar->id;
                         //actualizar la tabla de paginacion del proceso a accesar
                             //la pagin se encuentra en memoria
-                        proceso_a_accesar.residencia[pagina_especifica] = 1;
+                        proceso_a_accesar->residencia[pagina_especifica] = 1;
                             //la pagina se encuentra en el marco de pagina n
-                        proceso_a_accesar.marcoPagina[pagina_especifica] = n;
+                        proceso_a_accesar->marcoPagina[pagina_especifica] = n;
                             //last used = tiempo
-                        proceso_a_accesar.lastUsed = tiempo;
+                        proceso_a_accesar->lastUsed = tiempo;
                             //sumarle page faults
-                        proceso_a_accesar.pageFaults++;
+                        proceso_a_accesar->pageFaults++;
                         break;
 
                     }
@@ -188,10 +189,11 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
                 //si no hay espacio sacar una pagina de memoria y meter la nuestra en el espacio disponible
                 if(hay_espacio == false){
                     //swapout una pagina de memoria
-                    swap2();
+                    swapout();
+                    swapIn++;
                     //verificar si el 'proceso a accesar' deberia meterse a fifo nuevamente
                     for(int n = 0; n<128; n++){
-                        if(marcos[n]==proceso_a_accesar.id){//si encontro una pagina previa
+                        if(marcos[n]==proceso_a_accesar->id){//si encontro una pagina previa
                             meter_a_fifo=false;//no deberia meterse a fifo
                         }
                     }
@@ -199,27 +201,33 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
                     for(int n = 0; n<128; n++){
                         if(marcos[n] == -1){//marco disponible
                             //meter la pagina del 'proceso a accesar' en ese marco de pagina
-                            marcos[n] = proceso_a_accesar.id;
+                            marcos[n] = proceso_a_accesar->id;
                             //actualizar la tabla de paginacion del 'proceso a accesar'
                                 //la pagin se encuentra en memoria = true
-                            proceso_a_accesar.residencia[pagina_especifica] = 1;
+                            proceso_a_accesar->residencia[pagina_especifica] = 1;
                                 //la pagina se encuentra en el marco de pagina n
-                            proceso_a_accesar.marcoPagina[pagina_especifica] = n;
+                            proceso_a_accesar->marcoPagina[pagina_especifica] = n;
                                 //last used = tiempo
-                            proceso_a_accesar.lastUsed = tiempo;
+                            proceso_a_accesar->lastUsed = tiempo;
                                 //sumarle page faults
-                            proceso_a_accesar.pageFaults++;
+                            proceso_a_accesar->pageFaults++;
 
                         }
                     }
+                    tiempo += 1;
                     //mete a fifo
                     if(meter_a_fifo==true){
-                        fifo.push_back(proceso_a_accesar.id);
+                        fifo.push_back(proceso_a_accesar->id);
                     }
 
                     if(stoi(instruccion[3])==0){
                         cout<<"Direccion virtual: "<<instruccion[1]<<". Direccion real: "
-                        <<(proceso_a_accesar.marcoPagina[pagina_especifica] * 16) + (stoi(instruccion[1])%16)<<endl;
+                        <<(proceso_a_accesar->marcoPagina[pagina_especifica] * 16) + (stoi(instruccion[1])%16)<<endl;
+                    } else
+                    {
+                        cout<<"Pagina "<< pagina_especifica <<" del proceso " << id_del_proceso_a_accesar << " modificada." << endl;
+                        cout<<"Direccion virtual: "<<instruccion[1]<<". Direccion real: "
+                        <<(proceso_a_accesar->marcoPagina[pagina_especifica] * 16) + (stoi(instruccion[1])%16)<<endl;
                     }
                 }
 
@@ -228,13 +236,20 @@ void accesar(string linea)//intenta accesar al proceso en memoria y si no lo enc
             //accesar
             if(stoi(instruccion[3])==0){
                 cout<<"Direccion virtual: "<<instruccion[1]<<". Direccion real: "
-                <<(proceso_a_accesar.marcoPagina[pagina_especifica] * 16) + (stoi(instruccion[1])%16)<<endl;
+                <<(proceso_a_accesar->marcoPagina[pagina_especifica] * 16) + (stoi(instruccion[1])%16)<<endl;
+            } else
+            {
+                cout<<"Pagina "<< pagina_especifica <<" del proceso " << id_del_proceso_a_accesar << " modificada." << endl;
+                cout<<"Direccion virtual: "<<instruccion[1]<<". Direccion real: "
+                <<(proceso_a_accesar->marcoPagina[pagina_especifica] * 16) + (stoi(instruccion[1])%16)<<endl;
             }
         }
     }else{
             //generar error
             cout<<"Error: El proceso que se intenta accesar no ha sido cargado"<<endl;
     }
+
+    tiempo += 0.1;
 
 }
 
@@ -381,7 +396,7 @@ void cargarProceso(string linea)//intenta cargar el proceso en memoria y si esta
 
     while(iCountFreeSpace < nPaginas)
     {
-        swap2();
+        swapout();
         iCountFreeSpace++;
     }
 
@@ -448,7 +463,8 @@ void fin(string linea)//termina el paquete de pedido
         cout << "=====";
     }
     cout << "Turnaround promedio: " << trnTotal/listaProcesos.size() << endl;
-    cout << "Swaps: " << swaps << endl;
+    cout << "Swapouts: " << swapOut << endl;
+    cout << "Swapins: " << swapIn << endl;
 }
 
 
